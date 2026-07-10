@@ -67,3 +67,38 @@ jobs:
             SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
           with:
             args: --severity-threshold=high
+
+  zap-dast:
+      runs-on: ubuntu-latest
+      steps:
+        - name: Checkout code
+          uses: actions/checkout@v4
+
+        - name: Build Docker image from fork
+          run: docker build -t juice-shop .
+
+        - name: Start Juice Shop container
+          run: |
+            docker run -d -p 3000:3000 --name juice-shop juice-shop
+            sleep 20
+
+        - name: Wait for app to be ready
+          run: |
+            for i in {1..10}; do
+              curl -sf http://localhost:3000 && break
+              echo "Waiting for app..."
+              sleep 5
+            done
+
+        - name: ZAP Baseline Scan
+          uses: zaproxy/action-baseline@v0.12.0
+          with:
+            target: 'http://localhost:3000'
+            cmd_options: '-a'
+            fail_action: false
+
+        - name: Upload ZAP report
+          uses: actions/upload-artifact@v4
+          with:
+            name: zap-report
+            path: report_html.html
