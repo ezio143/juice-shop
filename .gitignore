@@ -67,7 +67,14 @@ config/*.yml
 
 # System Files
 .DS_Store
+.env
 
 # Misc
 .playwright-mcp/
 cypress/screenshots/
+
+#Security Reports
+venv/
+__pycache__/
+*.pyc
+findings/
