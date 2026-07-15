@@ -1,3 +1,8 @@
+# Security Pipeline
+# Gating philosophy: only Snyk (SCA) fails the build on high/critical severity.
+# CodeQL (SAST) and ZAP (DAST) run in report-only mode, surfacing findings via
+# the Security tab / artifact reports without blocking merges. This mirrors a
+# common "minimal friction" rollout pattern before tightening gates over time.
 name: Security Pipeline
 
 on:
