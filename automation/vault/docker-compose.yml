@@ -1,0 +1,17 @@
+
+# Dev-mode Vault — for local demonstration only.
+# Dev mode auto-unseals, stores all data in-memory (lost on restart),
+# and uses a single static root token. Never use dev mode in production;
+# a real deployment needs a proper storage backend, manual unsealing via
+# Shamir key shares, and TLS.
+services:
+  vault:
+    image: hashicorp/vault:1.17
+    container_name: vault-dev
+    ports:
+      - "8200:8200"
+    cap_add:
+      - IPC_LOCK
+    environment:
+      VAULT_DEV_ROOT_TOKEN_ID: "root"
+      VAULT_DEV_LISTEN_ADDRESS: "0.0.0.0:8200"
