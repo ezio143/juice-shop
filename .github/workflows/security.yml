@@ -114,6 +114,15 @@ jobs:
               report_json.json
             if-no-files-found: warn
 
+        - name: Verify container does not run as root
+          run: |
+            USER_ID=$(docker inspect --format '{{.Config.User}}' juice-shop:scan)
+            if [ -z "$USER_ID" ] || [ "$USER_ID" = "0" ] || [ "$USER_ID" = "root" ]; then
+              echo "::error::Container is running as root (User: '$USER_ID')"
+              exit 1
+            fi
+            echo "Container correctly configured to run as non-root user: $USER_ID"
+
   generate-sbom:
       runs-on: ubuntu-latest
       steps:
