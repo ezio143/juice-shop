@@ -1,3 +1,47 @@
+# DevSecOps Portfolio — Juice Shop Security Pipeline
+
+**Repo:** `github.com/ezio143/juice-shop` · **Author:** Jitendra Suvarna
+
+A single GitHub Actions pipeline and supporting automation, built around a fork of OWASP Juice Shop, covering six DevSecOps disciplines end-to-end: application security scanning, findings automation, pipeline/supply-chain hardening, secrets management, container security, and infrastructure-as-code security.
+
+This document ties all six projects together. Detailed before/after writeups for each live in the linked sections/files below.
+
+---
+
+## Architecture at a glance
+
+```
+juice-shop/                          (fork of OWASP Juice Shop)
+├── .github/workflows/security.yml   (Projects 1, 2, 4 — CI/CD pipeline)
+├── .pre-commit-config.yaml          (Project 3 — local secret scanning)
+├── automation/
+│   ├── fetch_findings.py            (Project 5)
+│   ├── prioritize.py                (Project 5)
+│   ├── create_issues.py             (Project 5)
+│   ├── dashboard.py                 (Project 5 — Streamlit)
+│   ├── fetch_secret.py              (Project 3 — Vault retrieval pattern)
+│   ├── grafana/                     (Project 5 — Grafana + Infinity, provisioned as code)
+│   ├── vault/                       (Project 3 — local Vault dev server)
+│   └── terraform/                   (Project 6 — insecure.tf / main.tf, scan-fix-rescan)
+└── README.md, PORTFOLIO_SUMMARY.md, PROJECT*_README*.md  (documentation)
+```
+
+---
+
+## The Six Projects
+
+| # | Project | What it proves | Status |
+|---|---|---|---|
+| 1 | SAST / DAST / SCA Pipeline | Understanding what each scanning category catches, and a deliberate gating philosophy | ✅ [Detail](./README.md) |
+| 5 | Automation / Triage / Reporting | Turning scanner noise into actionable, deduplicated, tracked work | ✅ [Detail](./PROJECT1_AND_5_DETAILED_README.md) |
+| 2 | Pipeline Hardening & Supply Chain Security | Treating CI/CD itself as attack surface — SHA-pinning, SBOM, signing | ✅ [Detail](./README.md#project-2) |
+| 3 | Secrets Management | Prevention (gitleaks) + correct pattern (Vault) — two different points in the lifecycle | ✅ Below |
+| 4 | Container Security | Image-layer scanning distinct from app/OS layers, non-root verification | ✅ Below |
+| 6 | IaC Security | Scan-fix-rescan loop on infrastructure-as-code, dual-tool suppression syntax | ✅ Below |
+
+---
+
+
 ## Project 1 — SAST / DAST / SCA Pipeline
 
 A GitHub Actions pipeline wiring three distinct vulnerability-scanning categories into a fork of OWASP Juice Shop, with a deliberate, documented gating strategy rather than a uniform "block everything" approach.
@@ -145,3 +189,86 @@ Built directly on Project 1's output to convert raw scan noise into an actionabl
 	- SBOM generation with deliberate tool selection reasoning (avoiding a tool with its own known vulnerability)
 	- Keyless artifact signing and — critically — actual local verification, not just "the signing step ran"
 	- Documenting real friction (the `.github/` scope leak, the tooling vulnerability) rather than presenting a frictionless narrative
+
+---
+
+## Project 3 — Secrets Management
+
+**Before:** No automated detection of secrets before they're committed, and no established pattern for where secrets should actually live instead of `.env`/hardcoded values.
+
+**Two complementary layers, addressing different points in the lifecycle:**
+
+- **gitleaks — prevention.** A local pre-commit hook (via the `pre-commit` framework) blocks commits containing detected secrets before they ever reach git history. A CI job (`gitleaks-action`, full git history via `fetch-depth: 0`) acts as the enforced backstop, since the local hook is opt-in per contributor and can be bypassed with `--no-verify`.
+- **HashiCorp Vault — the correct pattern.** A local Vault dev-mode server demonstrates secret storage and, more importantly, **programmatic retrieval** (`fetch_secret.py`): authenticate, pull exactly the needed secret into memory, never write it to disk or log it in plaintext. This is what an application should do instead of hardcoding credentials.
+
+**Real debugging:**
+- Confirmed gitleaks correctly *allowlists* AWS's own documented example key (`AKIAIOSFODNN7EXAMPLE`) by design — distinguishing intentional tool behavior from a false negative before assuming something was broken.
+- Vault's KV v2 secrets engine requires an undocumented `/data/` path segment in the raw HTTP API (`secret/data/juice-shop`) that the CLI abstracts away — a real gotcha worth knowing before writing integration code.
+
+**What this demonstrates:** Understanding that "secrets management" isn't one tool — it's prevention, detection, and correct runtime retrieval as three distinct concerns.
+
+---
+
+## Project 4 — Container Security
+
+**Before:** SAST (CodeQL) and SCA (Snyk) cover the application's own code and npm dependencies — neither inspects the actual container image that gets deployed, including its base OS layer.
+
+**Setup:** Trivy scans the Docker image built from this fork's own Dockerfile, gated on Critical/High severity (`exit-code 1`), findings uploaded to the same unified Security tab as CodeQL via SARIF.
+
+**Real debugging — two rounds:**
+1. Trivy initially scanned the **npm library layer**, duplicating Snyk's coverage rather than adding new signal. Scoped to `vuln-type: os` to focus on Trivy's actual differentiator.
+2. The scope fix didn't take — traced to a **known, unresolved upstream bug** in `aquasecurity/trivy-action` where `vuln-type` (and related inputs) are silently ignored across multiple versions. Confirmed via the raw SARIF file (`jq` on the `results[].locations[]` paths, not just trusting the action's reported success), then worked around by bypassing the action wrapper entirely and calling the Trivy CLI directly with explicit flags.
+
+**Non-root verification:** The base image (`gcr.io/distroless/nodejs24-debian13`) and `USER 65532` directive were already correctly hardened in the upstream Dockerfile. Rather than a redundant edit, added a CI guard step that fails the build if the image's configured user is ever root — protecting the existing hardening against future regression, not just checking a box once.
+
+**What this demonstrates:** Verifying a tool's actual behavior against raw output rather than trusting its reported success, and distinguishing "add a fix" from "guard an existing correct state" as two different but equally valid interventions.
+
+---
+
+## Project 6 — IaC Security
+
+**Before:** No static analysis of infrastructure-as-code — a Terraform config could provision a fully public S3 bucket or an SSH-open-to-the-world security group with zero automated warning before `apply`.
+
+**Setup:** An intentionally insecure Terraform file (`insecure.tf`) scanned with both Checkov and tfsec, then hardened (`main.tf`) and rescanned — the scan-fix-rescan loop the plan called for.
+
+**Results:**
+
+| | Before | After |
+|---|---|---|
+| Checkov | 21 failed / 9 passed | 2 failed / 55 passed (both explicitly suppressed) |
+| tfsec | 15 failed / 5 passed | 2 remaining / 29 passed / 2 suppressed |
+
+**Real findings from cross-tool comparison — not theoretical:** Checkov's hardcoded-secret check (`CKV_AWS_46`) **passed** on the original file despite a literal plaintext `DB_PASSWORD` sitting in EC2 `user_data` — a genuine false negative. tfsec's equivalent check correctly flagged it as Critical. This is direct, reproducible evidence for running more than one static analysis tool, not just an argument about differing vendor databases.
+
+**Real debugging — the fix loop itself:**
+- The rescan caught that a *new* resource introduced by the fix (`log_bucket`, added to receive access logs) hadn't been given the same hardening checklist as the original bucket — exactly why rescan is a loop, not a single pass.
+- Fixing "no event notifications" by adding an SNS topic introduced a *new* finding ("SNS topic not encrypted") — fixes can introduce their own follow-up findings.
+- Suppression syntax differs by tool in a way that's easy to get wrong: **tfsec's ignore comment goes above the resource block; Checkov's skip comment must go inside it.** Confirmed by watching a misplaced Checkov comment silently fail to suppress (`FAILED`, not `SKIPPED`) until corrected.
+- One finding (`log_bucket` can't sensibly log access to itself) was left open and documented as a genuine dead-end rather than over-engineered around.
+
+**What this demonstrates:** The scan-fix-rescan cycle in practice — including its imperfections (new findings from fixes, tool-specific suppression syntax, honest documentation of what's deliberately left open vs. what's a bug).
+
+---
+
+## Recurring Engineering Themes (Across All Six Projects)
+
+1. **Deliberate, stated gating — never uniform.** Each pipeline gate (Snyk on SCA, Trivy on OS CVEs, gitleaks on secrets) was a conscious choice about signal-to-noise, not a reflexive "block everything."
+2. **Verify, don't trust reported success.** The Trivy `vuln-type` bug was only caught by inspecting raw SARIF output, not the action's green checkmark. The Checkov suppression bug was only caught by re-reading the log's `FAILED` vs `SKIPPED` status.
+3. **Cross-tool validation surfaces real gaps.** Dependabot vs. Snyk, Checkov vs. tfsec — in the Terraform case, one tool's false negative (missed hardcoded secret) was directly caught by the other. This is evidence, not a theoretical argument.
+4. **Fixes introduce new findings.** Adding SBOM tooling introduced a vulnerable dependency of its own (Project 2). Adding an SNS topic for S3 notifications introduced an unencrypted-topic finding (Project 6). Security work doesn't terminate in a single pass.
+5. **Document what's deliberately deferred.** Cross-region replication, `log_bucket` self-logging, some Snyk findings with no available patch — each was explicitly risk-accepted and explained, not silently ignored.
+6. **The pipeline's own tooling needs the same scrutiny as the app.** `cyclonedx-npm` shipped a Command Injection CVE. `trivy-action` silently ignores config. Grafana's plugin required a newer core version than was pinned. Supply-chain thinking applies recursively to your own toolchain.
+
+---
+
+## Skills Demonstrated → JD Mapping
+
+|---|---|
+| SAST, DAST, SCA integration | Project 1 |
+| Vulnerability triage & remediation | Projects 1, 2, 4, 6 (every finding has a documented triage decision) |
+| Security automation (Python) | Project 5 (`fetch_findings.py`, `prioritize.py`, `create_issues.py`, `fetch_secret.py`) |
+| CI/CD pipeline design & security | Projects 1, 2, 4 |
+| Infrastructure as Code (Terraform) | Project 6 |
+| Secrets management | Project 3 |
+| Container security | Project 4 |
+| Monitoring/dashboards | Project 5 (Streamlit + Grafana) |
