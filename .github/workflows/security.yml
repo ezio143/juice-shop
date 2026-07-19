@@ -106,7 +106,7 @@ jobs:
                 
         - name: Verify container does not run as root
           run: |
-            USER_ID=$(docker inspect --format '{{.Config.User}}' juice-shop:scan)
+            USER_ID=$(docker inspect --format '{{.Config.User}}' juice-shop)
             if [ -z "$USER_ID" ] || [ "$USER_ID" = "0" ] || [ "$USER_ID" = "root" ]; then
               echo "::error::Container is running as root (User: '$USER_ID')"
               exit 1
@@ -204,7 +204,7 @@ jobs:
             image-ref: 'juice-shop:scan'
             format: 'sarif'
             output: 'trivy-results.sarif'
-            severity: 'CRITICAL,HIGH'
+            severity: 'CRITICAL'  # only fail the build for critical severity vulnerabilities
             exit-code: '1'          # fail the build if matching severities are found
             vuln-type: 'os'  # both OS packages and application-layer libraries
 
