@@ -25,17 +25,31 @@ jobs:
         steps:
             - uses: actions/checkout@v4
 
-            - name: Semgrep Scan
-              continue-on-error: ${{vars.ENFORCE_GATES != 'true'}}
+            - name: Semgrep SAST Scan
+              continue-on-error: ${{ vars.ENFORCE_GATES != 'true' }}
               run: |
                   mkdir -p reports
-                  # Reports and gates on ERROR severity only; widen once triaged.
-                  docker run --rm -v "$PWD:/src" -w /src semgrep/semgrep:latest \
-                  semgrep scan --metrics=off --error --severity ERROR \
-                  --config p/default --config p/javascript \
-                  --config p/typescript --config p/nodejs \
-                  --exclude node_modules --exclude test \
-                  --sarif-output=reports/semgrep.sarif .
+                  docker run --rm \
+                  --user $(id -u):$(id -g) \
+                  -v "$PWD:/src" \
+                  -w /src \
+                  semgrep/semgrep:latest \
+                  semgrep scan \
+                      --metrics=off \
+                      --error \
+                      --severity ERROR \
+                      --config p/default \
+                      --config p/javascript \
+                      --config p/typescript \
+                      --config p/nodejs \
+                      --config p/owasp-top-10 \
+                      --exclude node_modules \
+                      --exclude test \
+                      --exclude data \
+                      --exclude dist \
+                      --exclude build \
+                      --sarif-output=reports/semgrep.sarif \
+                      .
 
             - uses: actions/upload-artifact@v4
               if: always()
