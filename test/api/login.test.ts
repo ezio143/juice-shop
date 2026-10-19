@@ -233,6 +233,30 @@ void describe('/rest/user/login', () => {
 
     assert.equal(res.status, 401)
   })
+
+  void it('POST login with SQL injection payload in email is rejected', async () => {
+    const res = await request(app)
+      .post('/rest/user/login')
+      .set({ 'content-type': 'application/json' })
+      .send({
+        email: "' OR true--",
+        password: 'x'
+      })
+
+    assert.equal(res.status, 401)
+  })
+
+  void it('POST login with valid credentials still works', async () => {
+    const res = await request(app)
+      .post('/rest/user/login')
+      .set({ 'content-type': 'application/json' })
+      .send({
+        email: 'admin@juice-sh.op',
+        password: 'admin123'
+      })
+    assert.equal(res.status, 200)
+    assert.equal(typeof res.body.authentication.token, 'string')
+  })
 })
 
 void describe('/rest/saveLoginIp', () => {
@@ -285,3 +309,5 @@ void describe('/rest/saveLoginIp', () => {
     assert.equal(res.status, 401)
   })
 })
+
+
