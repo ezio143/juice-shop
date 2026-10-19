@@ -15,8 +15,8 @@ import { type User } from '../data/types'
 import * as utils from '../lib/utils'
 
 // vuln-code-snippet start loginAdminChallenge loginBenderChallenge loginJimChallenge
-export function login () {
-  function afterLogin (user: User, res: Response, next: NextFunction) {
+export function login() {
+  function afterLogin(user: User, res: Response, next: NextFunction) {
     verifyPostLoginChallenges(user) // vuln-code-snippet hide-line
     BasketModel.findOrCreate({ where: { UserId: user.id } })
       .then(([basket]: [BasketModel, boolean]) => {
@@ -31,7 +31,7 @@ export function login () {
 
   return (req: Request, res: Response, next: NextFunction) => {
     verifyPreLoginChallenges(req) // vuln-code-snippet hide-line
-    models.sequelize.query(`SELECT * FROM Users WHERE email = '${req.body.email || ''}' AND password = '${security.hash(req.body.password || '')}' AND deletedAt IS NULL`, { model: UserModel, plain: true }) // vuln-code-snippet vuln-line loginAdminChallenge loginBenderChallenge loginJimChallenge
+    models.sequelize.query('SELECT * FROM Users WHERE email = $email AND password = $password AND deletedAt IS NULL', { bind: { email: req.body.email || '', password: security.hash(req.body.password || '') }, model: UserModel, plain: true }) // vuln-code-snippet vuln-line loginAdminChallenge loginBenderChallenge loginJimChallenge
       .then((authenticatedUser) => { // vuln-code-snippet neutral-line loginAdminChallenge loginBenderChallenge loginJimChallenge
         const user = utils.queryResultToJson(authenticatedUser)
         if (user.data?.id && user.data.totpSecret !== '') {
@@ -55,7 +55,7 @@ export function login () {
   }
   // vuln-code-snippet end loginAdminChallenge loginBenderChallenge loginJimChallenge
 
-  function verifyPreLoginChallenges (req: Request) {
+  function verifyPreLoginChallenges(req: Request) {
     challengeUtils.solveIf(challenges.weakPasswordChallenge, () => { return req.body.email === 'admin@' + config.get<string>('application.domain') && req.body.password === 'admin123' })
     challengeUtils.solveIf(challenges.loginSupportChallenge, () => { return req.body.email === 'support@' + config.get<string>('application.domain') && req.body.password === 'J6aVjTgOpRs@?5l!Zkq2AYnCE@RF$P' })
     challengeUtils.solveIf(challenges.loginRapperChallenge, () => { return req.body.email === 'mc.safesearch@' + config.get<string>('application.domain') && req.body.password === 'Mr. N00dles' })
@@ -65,7 +65,7 @@ export function login () {
     challengeUtils.solveIf(challenges.exposedCredentialsChallenge, () => { return req.body.email === 'testing@' + config.get<string>('application.domain') && req.body.password === 'IamUsedForTesting' })
   }
 
-  function verifyPostLoginChallenges (user: User) {
+  function verifyPostLoginChallenges(user: User) {
     challengeUtils.solveIf(challenges.loginAdminChallenge, () => { return user.id === users.admin.id })
     challengeUtils.solveIf(challenges.loginJimChallenge, () => { return user.id === users.jim.id })
     challengeUtils.solveIf(challenges.loginBenderChallenge, () => { return user.id === users.bender.id })
