@@ -32,10 +32,10 @@ jobs:
                   # Reports and gates on ERROR severity only; widen once triaged.
                   docker run --rm -v "$PWD:/src" -w /src semgrep/semgrep:latest \
                   semgrep scan --metrics=off --error --severity ERROR \
-                  --config p/default --config p/javascript \
+                  --config p/default --config p/javascript --config p/owasp-top-10 \
                   --config p/typescript --config p/nodejs \
-                  --exclude node_modules --exclude test \
-                  --sarif-output=reports/semgrep.sarif .
+                  --exclude node_modules --exclude test --exclude data \
+                  --json -o reports/semgrep.json .
 
             - uses: actions/upload-artifact@v4
               if: always()
