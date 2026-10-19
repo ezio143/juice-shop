@@ -31,11 +31,11 @@ jobs:
                   mkdir -p reports
                   # Reports and gates on ERROR severity only; widen once triaged.
                   docker run --rm -v "$PWD:/src" -w /src semgrep/semgrep:latest \
-                  semgrep scan --metrics=off --error --severity ERROR \
+                  semgrep scan --metrics=off --severity ERROR \
                   --config p/default --config p/javascript --config p/owasp-top-ten \
                   --config p/typescript --config p/nodejs \
                   --exclude node_modules --exclude test --exclude data \
-                  --json -o reports/semgrep.json .
+                  --json -o reports/sast.semgrep.json .
 
             - uses: actions/upload-artifact@v4
               if: always()
@@ -43,3 +43,17 @@ jobs:
                   name: semgrep-report
                   path: reports/
                   if-no-files-found: warn
+
+            - name: Gate - fail on Critical findings
+              run: |
+                  REPORT=reports/sast.semgrep.json
+                  FINDINGS=$(jq -r '.results[]
+                      | select(.extra.severity == "ERROR"
+                              or ((.extra.metadata.impact // "") | tostring | ascii_upcase) == "HIGH")
+                      | "::error file=\(.path),line=\(.start.line)::\(.check_id)"' "$REPORT")
+                  if [ -n "$FINDINGS" ]; then
+                      echo "$FINDINGS"
+                      echo "Semgrep: $(echo "$FINDINGS" | wc -l) critical finding(s)"
+                      exit 1
+                  fi
+                  echo "Semgrep: no critical findings"
