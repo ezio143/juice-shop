@@ -17,9 +17,10 @@ This fork of [OWASP Juice Shop](https://github.com/juice-shop/juice-shop) is an 
 
 ## Summary
 
-| # | OWASP 2021 | CWE | Issue | File(s) | PR | Status | Evidence |
+| # | OWASP 2021 | CWE | Issue | File(s) | PR | Status 
 |---|---|---|---|---|---|---|---|
-| 1 | A03 Injection | CWE-89 | SQL injection | `routes/login.ts` | #1 | Fixed | TBD |
+| 1 | A03 Injection | CWE-89 | SQL injection | `routes/login.ts` | #1 | Fixed
+| 1 | A03 Injection | CWE-89 | SQL injection | `routes/search.ts` | #2 | Fixed
 
 <!-- Add one row per fix. Status: Planned / In progress / Fixed -->
 
