@@ -197,3 +197,20 @@ void describe('/profile', () => {
     assert.equal(datacache.challenges.csrfChallenge.solved, false)
   })
 })
+
+void it('JS: Update username with Malicious Code returns sanitized username', async () => {
+  await request(app)
+    .post('/profile')
+    .set('Cookie', authHeader.Cookie)
+    .type('form')
+    .send({ username: 'tester1#{7*7}' })
+    .redirects(0)
+
+  const res = await request(app)
+    .get('/profile')
+    .set(authHeader)
+
+  assert.equal(res.status, 200)
+  assert.ok(res.headers['content-type']?.includes('text/html'))
+  assert.ok(!res.text.includes('tester1#{7*7}'))
+})

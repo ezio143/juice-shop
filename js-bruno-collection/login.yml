@@ -1,0 +1,21 @@
+info:
+  name: login
+  type: http
+
+http:
+  method: POST
+  url: http://localhost:3000/rest/user/login
+  body:
+    type: json
+    data: |-
+      {
+        "email": "tester1@gmail.com",
+        "password": "Tester@123"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
