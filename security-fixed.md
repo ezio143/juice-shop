@@ -11,6 +11,12 @@ This fork of [OWASP Juice Shop](https://github.com/juice-shop/juice-shop) is an 
 
 1. Reproduce the exploit on the current code and save the evidence.
 2. Write a regression test that fails on the vulnerable code.
+    example:
+``` 
+    node --import ./test/api/helpers/test-env.mjs --import tsx --test --test-force-exit test/api/user-profile.test.ts
+
+    node --import ./test/api/helpers/test-env.mjs --import tsx --test --test-force-exit --test-name-pattern "JS: Update username with Malicious Code returns sanitized username" test/api/user-profile.test.ts
+```
 3. Apply a minimal fix, one type of vulnerability per PR.
 4. Verify: test passes, exploit blocked, scanner finding gone.
 5. Open a PR using the [PR template](.github/pull_request_template.md), run the pipeline (SAST, SCA, DAST), then merge.
