@@ -62,19 +62,16 @@ export function getUserProfile () {
           if (!code) {
             throw new Error('Username is null')
           }
-          username = eval(code) // eslint-disable-line no-eval
+          username = '\\' + username
+          // vulnerable code: username = eval(code)  // eslint-disable-line no-eval
         } catch (err) {
           username = '\\' + username
         }
       } else {
         username = '\\' + username
       }
-      if (username) {
-        template = template.replace(/_username_/g, username)
-      }
-    } else {
-      template = template.replace(/_username_/g, '#{username}')
     }
+    template = template.replace(/_username_/g, '#{username}')
     template = template.replace(/_emailHash_/g, security.hash(user?.email))
     template = template.replace(/_title_/g, entities.encode(config.get<string>('application.name')))
     template = template.replace(/_favicon_/g, favicon())

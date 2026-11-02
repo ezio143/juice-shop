@@ -12,6 +12,10 @@ import { UserModel } from '../models/user'
 import * as utils from '../lib/utils'
 import config from 'config'
 
+function sanitizeHtml (value: string): string {
+  return value.replace(/[^a-zA-Z0-9_]/g, '')
+}
+
 export function updateUserProfile () {
   return async (req: Request, res: Response, next: NextFunction) => {
     const loggedInUser = security.authenticatedUsers.get(req.cookies.token)
@@ -35,7 +39,13 @@ export function updateUserProfile () {
           req.body.username !== user.username
       })
 
-      const savedUser = await user.update({ username: req.body.username })
+      // Validate and sanitize the username
+      let newUsername = req.body.username
+      if (typeof newUsername !== 'string' || newUsername.trim().length < 3 || newUsername.trim().length > 20) {
+        return res.status(400).json({ error: 'Invalid username. Must be 3-20 characters.' })
+      }
+      newUsername = sanitizeHtml(newUsername.trim())
+      const savedUser = await user.update({ username: newUsername })
       const userWithStatus = utils.queryResultToJson(savedUser)
       const updatedToken = security.authorize(userWithStatus)
       security.authenticatedUsers.put(updatedToken, userWithStatus)

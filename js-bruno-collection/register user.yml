@@ -1,0 +1,30 @@
+info:
+  name: register user
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: http://localhost:3000/api/Users/
+  body:
+    type: json
+    data: |-
+      {
+        "email": "tester1@gmail.com",
+        "password": "Tester@123",
+        "passwordRepeat": "Tester@123",
+        "securityQuestion": {
+          "id": 1,
+          "question": "Your eldest siblings middle name?",
+          "createdAt": "2026-11-02T06:14:38.948Z",
+          "updatedAt": "2026-11-02T06:14:38.948Z"
+        },
+        "securityAnswer": "N"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
