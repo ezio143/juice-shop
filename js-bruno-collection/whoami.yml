@@ -1,0 +1,22 @@
+info:
+  name: whoami
+  type: http
+  seq: 3
+
+http:
+  method: GET
+  url: http://localhost:3000/rest/user/whoami
+  headers:
+    - name: Cookie
+      value: token=eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJkYXRhIjp7ImlkIjoyNSwidXNlcm5hbWUiOiIiLCJlbWFpbCI6InRlc3RlcjFAZ21haWwuY29tIiwicGFzc3dvcmQiOiJjNmM1MzcwNGRkYjY1MTBjODYyYzFjNDcyNzk1OGQ3OCIsInJvbGUiOiJjdXN0b21lciIsImRlbHV4ZVRva2VuIjoiIiwibGFzdExvZ2luSXAiOiIwLjAuMC4wIiwicHJvZmlsZUltYWdlIjoiL2Fzc2V0cy9wdWJsaWMvaW1hZ2VzL3VwbG9hZHMvZGVmYXVsdC5zdmciLCJ0b3RwU2VjcmV0IjoiIiwiaXNBY3RpdmUiOnRydWUsImNyZWF0ZWRBdCI6IjIwMjYtMTEtMTIgMDU6NDU6MjQuNDYwICswMDowMCIsInVwZGF0ZWRBdCI6IjIwMjYtMTEtMTIgMDU6NDU6MjQuNDYwICswMDowMCIsImRlbGV0ZWRBdCI6bnVsbH0sImJpZCI6NiwiaWF0IjoxNzk0NDYyMzI5fQ.Pec5fISKjIj_3e8hsKIQd-86eFgUKsjhtwoNjlaQeZcwAWnuWeD8lEseaFjtZ1qHsTFByjXqtFMp0p4reIMe59eJdXGoFylwswme1UeiEW-ObVju01kSocxjcp9_KkNxlPLM-iqgP3IKtX26Uq97bhTVxyr4ceK5Q6T8YPFMDVE
+  params:
+    - name: fields
+      value: id,email,password
+      type: query
+      disabled: true
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
