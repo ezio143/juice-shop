@@ -8,7 +8,7 @@ import { type Request, type Response } from 'express'
 import { challenges } from '../data/datacache'
 import * as security from '../lib/insecurity'
 
-export function retrieveLoggedInUser () {
+export function retrieveLoggedInUser() {
   return (req: Request, res: Response) => {
     let user
     let response: any
@@ -26,11 +26,20 @@ export function retrieveLoggedInUser () {
 
         if (requestedFields.length > 0) {
           // When fields are specified, return only those fields
-          for (const field of requestedFields) {
-            if (user?.data[field as keyof typeof user.data] !== undefined) {
-              baseUser[field] = user?.data[field as keyof typeof user.data]
-            }
-          }
+          const source = new Map<string, unknown>([
+            ['id', user?.data?.id],
+            ['email', user?.data?.email],
+            ['lastLoginIp', user?.data?.lastLoginIp],
+            ['profileImage', user?.data?.profileImage]
+          ])
+          // create allow list to only allow certain fields to be returned in the response
+          const allowedFields = ['id', 'email', 'lastLoginIp', 'profileImage']
+          const entries = requestedFields
+            .filter(field => allowedFields.includes(field))
+            .map(field => [field, source.get(field)] as const)
+            .filter(([, value]) => value !== undefined)
+
+          Object.assign(baseUser, Object.fromEntries(entries))
         } else {
           // If no fields parameter, return standard fields (not password field)
           baseUser = {
