@@ -4,7 +4,7 @@
 ## Classification
 | | |
 |---|---|
-| **OWASP Top 10 (2021)** | A0X: Name |
+| **OWASP Top 10 (2025)** | A0X: Name |
 | **CWE** | CWE-XXX |
 | **Severity** | Low / Medium / High / Critical |
 

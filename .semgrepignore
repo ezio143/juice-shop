@@ -1,0 +1,7 @@
+# tell semgrep to ignore files ignored by git
+:include .gitignore
+
+# Exception 1 : CWE-321 - use of hardcoded crypto keys
+# defect dojo finding: generic.secrets.security.detected-jwt-token.detected-jwt-token - line 72
+# reason for suppression: part of unit test case and no production impact
+frontend/src/app/last-login-ip/last-login-ip.component.spec.ts
