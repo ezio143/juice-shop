@@ -34,7 +34,6 @@ jobs:
                   semgrep scan --metrics=off --severity ERROR \
                   --config p/default --config p/javascript --config p/owasp-top-ten \
                   --config p/typescript --config p/nodejs \
-                  --exclude node_modules --exclude test --exclude data \
                   --json -o reports/sast.semgrep.json .
 
             - uses: actions/upload-artifact@v4
