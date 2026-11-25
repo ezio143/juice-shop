@@ -23,7 +23,8 @@ jobs:
         runs-on: ubuntu-latest
         timeout-minutes: 15
         steps:
-            - uses: actions/checkout@v4
+            - name: Checkout Code
+              uses: actions/checkout@v4
 
             - name: Semgrep Scan
               continue-on-error: ${{vars.ENFORCE_GATES != 'true'}}
@@ -40,7 +41,7 @@ jobs:
               if: always()
               with:
                   name: semgrep-report
-                  path: reports/
+                  path: reports/sast.semgrep.json
                   if-no-files-found: warn
 
             - name: Gate - fail on Critical findings
@@ -56,3 +57,33 @@ jobs:
                       exit 1
                   fi
                   echo "Semgrep: no critical findings"
+
+    sca-trivy:
+        name: SCA - Trivy
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout Code
+              uses: actions/checkout@v4
+
+            - name: Create Report Directory
+              run: mkdir -p reports
+
+            - name: Trivy Dependency Scan
+              uses: aquasecurity/trivy-action@v0.36.0
+              with:
+                  scan-type: fs
+                  scan-ref: "."
+                  scanners: "vuln,secret,misconfig"
+                  vuln-type: library
+                  format: json
+                  output: reports/sca.trivy.json
+                  severity: CRITICAL,HIGH
+                  exit-code: "1"
+                  trivyignores: .trivyignore.yml
+            
+            - uses: actions/upload-artifact@v4
+              if: always()
+              with:
+                  name: trivy-report
+                  path: reports/sca.trivy.json
+                  if-no-files-found: warn
